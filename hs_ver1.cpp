@@ -65,15 +65,6 @@ class StudentsFileStruct {
 			
 		}
 		
-		/*int calPowingNum(int powNumber) {
-			int thisPowingNum = 1;
-			for(int i = 0; i < powNumber; i++) {
-				thisPowingNum *= 10;
-			}
-			
-			return thisPowingNum;
-		}*/
-		
 		/*int binToDec(string number) {
 			int result = 0, pow = 1;
 			for(int i = number.length()-1;i>=0;i--,pow <<= 1) {
@@ -100,33 +91,15 @@ class StudentsFileStruct {
 			
 		}
 		
-		/*int hashFunction(unsigned int studentID, int binaryDigit) {
-			int whatPow = 1;
-			
-			for(int i = 0; i < binaryDigit; i++) {
-				whatPow *= 2; 
-			}
-			
-			int hashingValue;
-			
-			hashingValue = studentID % whatPow;
-			
-			return hashingValue;
-		}*/
-		
 		void calculate_DB_HashTable() {
 			HashData tmp_hashData;
 			BlockData tmp_blockData;
 			
-			int howManyInput = 0;                                                    
+			int howManyInput = 0;                                        
 			int useBinaryDigit = 0;
 			int endBlockLocate = 1;
 			
-			/*for(int init=0; init < 2; init++) {
-				//tmp_hashData.binaryNum = init;
-				hashNode.push_back(tmp_hashData);
-			}*/
-			
+			//start input studentData
 			while(howManyInput < studentNum) {
 				string hasingValue = hashFunction(studentsData[howManyInput].studentID);
 				//cout << hasingValue << endl;
@@ -134,20 +107,22 @@ class StudentsFileStruct {
 					hashNode.push_back(tmp_hashData);
 				}
 				unsigned int thisHashLoc = 0;
+				string hashLocBi;
 				
+				//find hashNode's location mathing this data's hasingValue
 				for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
+					hashLocBi = hashFunction(thisHashLoc);
+					if(hashLocBi.length() < useBinaryDigit) {
+						while(hashLocBi.length() != useBinaryDigit) {
+							hashLocBi = "0" + hashLocBi;
+						}
+					}
 					
 					if(useBinaryDigit == 0) {
 						// this hashLoc = 0;
 						break;
 					} else {
 						bool outThisFor = false;
-						string hashLocBi = hashFunction(thisHashLoc);
-						if(hashLocBi.length() < useBinaryDigit) {
-							while(hashLocBi.length() != useBinaryDigit) {
-								hashLocBi = "0" + hashLocBi;
-							}
-						}
 						
 						if(hasingValue.substr(hasingValue.length() - useBinaryDigit, useBinaryDigit) == hashLocBi) {
 							//cout << hasingValue.substr(hasingValue.length() - useBinaryDigit, useBinaryDigit) << endl;
@@ -160,18 +135,19 @@ class StudentsFileStruct {
 					
 					thisHashLoc ++;
 				}
-				
-				
 				//cout << hashNode[thisHashLoc].pointBlockNum;
-				if(hashNode[thisHashLoc].pointBlockNum == 0) {
+				
+				//start this data input block
+				if(hashNode[thisHashLoc].pointBlockNum == 0) { // this hashNode's pointBlock is null
 					hashNode[thisHashLoc].pointBlockNum = endBlockLocate;
 					tmp_blockData.thisBlockNum = endBlockLocate;
 					tmp_blockData.studentData.push_back(studentsData[howManyInput]);
 					blockNode.push_back(tmp_blockData);
 					endBlockLocate ++;
-				} else {
+				} else { //this hashNode's pointBlock is exist .. this excute all case, except first do
 					int thisBlockLoc = 0;
 					
+					//find blockNode's location mathing this data's hasingValue
 					for(block_iter = blockNode.begin(); block_iter != blockNode.end(); block_iter++) {
 						if(hashNode[thisHashLoc].pointBlockNum == blockNode[thisBlockLoc].thisBlockNum) {
 							break;
@@ -179,99 +155,105 @@ class StudentsFileStruct {
 						thisBlockLoc ++;
 					}
 					
-					int hashPointerNum = 0;
-					for(int i = 0; i < hashNode.size(); i++) {
-						if(hashNode[i].pointBlockNum == blockNode[thisBlockLoc].thisBlockNum) {
-							hashPointerNum ++;
-						}
-					}
 					
-					if(blockNode[thisBlockLoc].studentData.size() <= 128 ) {
+					//overflow is exist or not .. input this data in this block
+					if(blockNode[thisBlockLoc].studentData.size() <= 128 ) { // if blockData's size is smaller 128
 						blockNode[thisBlockLoc].studentData.push_back(studentsData[howManyInput]);
-					} else {
-						while() {
-							if(hashPointerNum != 1) {
-							
-							} else {
-							
-							}	
-						}
+					} else { // if overflow is exist
+						//bool is_overflow = true;
 						
+						//calculate hash's pointer number about this node
+						vector <int> useHashNode;
+						int hashPointerNum = 0;
+						for(int i = 0; i < hashNode.size(); i++) {
+							if(hashNode[i].pointBlockNum == blockNode[thisBlockLoc].thisBlockNum) {
+								useHashNode.push_back(hashPointerNum);
+							hashPointerNum ++;
+							}
+						}
+							
+						BlockData tmp_Allo_blockData;
+						
+						//according to hash's pointer number, calculate change
+						if(hashPointerNum == 1) { // if hash's pointer number = 1, this hashtable is double.
+							//cout << "pointerNum 1" << endl;
+							useBinaryDigit ++;
+							vector <HashData> tmp_hashNode = hashNode;
+							hashNode.insert(hashNode.end(), tmp_hashNode.begin(), tmp_hashNode.end());
+							/*int j = 0;
+							
+							for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
+								cout << hashNode[j].pointBlockNum << endl;
+								j++;
+							}
+							cout << endl;*/
+							BlockData tmp2_blockData;
+							tmp_Allo_blockData.thisBlockNum = endBlockLocate;
+							blockNode.push_back(tmp_Allo_blockData);
+							vector <StudentData>::iterator studData_iter;
+							
+							int thisBloData_loc = 0;
+							//vector <StudentData> newBlockData;
+							
+							for(studData_iter = blockNode[thisBlockLoc].studentData.begin(); studData_iter != blockNode[thisBlockLoc].studentData.end();) {
+								
+								string reHasingValue = hashFunction(blockNode[thisBlockLoc].studentData[thisBloData_loc].studentID);
+								
+								string RehashLocBi;
+								if(useBinaryDigit == 1) {
+									RehashLocBi = "1";
+								} else {
+									
+								RehashLocBi = "1" + hashLocBi;
+								
+								}
+								
+								if(reHasingValue.substr(reHasingValue.length() - useBinaryDigit, useBinaryDigit) == RehashLocBi) {
+									blockNode[endBlockLocate - 1].studentData.push_back(blockNode[thisBlockLoc].studentData[thisBloData_loc]);
+									
+									//cout << reHasingValue.substr(reHasingValue.length() - useBinaryDigit, useBinaryDigit) << endl;
+									studData_iter = blockNode[thisBlockLoc].studentData.erase(studData_iter);
+								} else {
+									studData_iter ++;
+								}
+								
+								thisBloData_loc++;									
+							}
+							
+							
+							int newHashLoc = 1;
+							for(int i = 1; i < useBinaryDigit; i ++) {
+								newHashLoc *= 2;
+							}
+							hashNode[thisHashLoc + newHashLoc].pointBlockNum = endBlockLocate;
+							endBlockLocate ++;
+							
+						} else { // if hash's pointer number is not 1, this hashTable use.
+								//and hash's pointer number is 2, 4, 8, ....
+							
+							/*¹Ì±¸Çö*/
+							 
+							string RehasingValue = hashFunction(studentsData[howManyInput].studentID);
+						
+							tmp_Allo_blockData.thisBlockNum = endBlockLocate;
+							//blockNode.push_back(tmp_Allo_blockData);
+							//cout << "pointerNum not 1" << endl;
+							
+					 	}
+								
+							
+							
+						
+						/*vector<int>::iterator it;
+    					it=find(vi.begin(),vi.end(),55);
+     					cout << *it << endl;
+     					vi.erase(it+1);
+     					cout << *it << endl;*/
+     					
 						/*vector <HashData> tmp_hashNode = hashNode;
 						hashNode.insert(hashNode.end(), tmp_hashNode.begin(), tmp_hashNode.end());*/
 					}
 				}
-				
-				/*for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
-					unsigned int thisHashLoc = 0;
-					
-					if(useBinaryDigit == 0) {
-						if((*hash_iter).pointBlockNum == NULL) {
-							(*hash_iter).pointBlockNum = endBlockLocate;
-							tmp_blockData.thisBlockNum = endBlockLocate;
-							tmp_blockData.recordedNum = 0;
-							tmp_blockData.studentData[tmp_blockData.recordedNum] = studentsData[howManyInput];
-							//cout << tmp_blockData.recordedNum;
-							blockNode.push_back(tmp_blockData);
-							//cout << "n";
-							endBlockLocate ++;
-						} else if((*block_iter).recordedNum < 128) {
-						//	cout << (*block_iter).recordedNum;
-							//(*block_iter).recordedNum = (*block_iter).recordedNum + 1;
-							//(*block_iter).studentData[(*block_iter).recordedNum] = studentsData[howManyInput];
-							//(*block_iter).recordedNum ++;
-							//cout << (*block_iter).recordedNum;
-						} else {
-							cout << "no" << endl;
-						}
-					} else {
-						//if(hasingValue.substr(hasingValue.length() - useBinaryDigit, useBinaryDigit) == hashFunction(thisHashLoc)) {
-						//	cout << hasingValue.substr(hasingValue.length() - useBinaryDigit, useBinaryDigit);
-						//}
-					}*/
-					
-					
-					/*if((*hash_iter).pointBlockNum == NULL) {
-						(*hash_iter).pointBlockNum = endBlockLocate
-						tmp_blockData.thisBlockNum = endBlockLocate;
-						tmp_blockData.recordedNum = 0;
-						tmp_blockData.studentData[tmp_blockData.recordedNum] = studentsData[howManyInput];
-						blockNode.push_back(tmp_blockData);
-						//cout << "n";
-						endBlockLocate ++;
-					}
-					
-					thisHashLoc ++;
-					
-					
-				}*/
-				/*for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
-					if((*hash_iter).binaryNum == hasingValue) {
-						if((*hash_iter).pointBlockNum == NULL) {
-							(*hash_iter).pointBlockNum = endBlockLocate;
-							tmp_blockData.thisBlockNum = endBlockLocate;
-							tmp_blockData.recordedNum = 0;
-							tmp_blockData.studentData[tmp_blockData.recordedNum] = studentsData[howManyInput];
-							blockNode.push_back(tmp_blockData);
-							//cout << "n";
-							endBlockLocate ++;
-						}
-						else {
-							for(block_iter = blockNode.begin(); block_iter != blockNode.end(); block_iter++) {
-								if((*block_iter).thisBlockNum == (*hash_iter).pointBlockNum) {
-									//(*block_iter)
-									
-								}
-							}
-							//block_iter = find(blockNode.begin(), blaockNode.end(), ???);
-						}
-						
-					}
-					
-				}*/
-				//if(hasingValue == )
-				//hash_iter = hashNode.begin();
-				//cout << hasingValue << endl;
 				
 				//if(hash_iter=find(hashNode.begin(), hashNode.end(), binaryNum))
 				
