@@ -348,10 +348,16 @@ class StudentsFileStruct {
 				fo.seekp(4096 * i);
 				for(studData_iter = blockNode[i].studentData.begin(); studData_iter != blockNode[i].studentData.end(); studData_iter++) {
 					// file in blockNode's studentData
-					fo << blockNode[i].studentData[j].name;
+					fo.write((char*)(&(blockNode[i].studentData[j].name)), sizeof(blockNode[i].studentData[j].name));
+					//fo.seekp(4096 * i + 20 * j);
+					fo.write((char*)(&(blockNode[i].studentData[j].studentID)), sizeof(blockNode[i].studentData[j].studentID));
+					fo.write((char*)(&(blockNode[i].studentData[j].score)), sizeof(blockNode[i].studentData[j].score));
+					fo.write((char*)(&(blockNode[i].studentData[j].advisorID)), sizeof(blockNode[i].studentData[j].advisorID));
+				
+					/*fo << blockNode[i].studentData[j].name;
 					fo << blockNode[i].studentData[j].studentID;
 					fo << blockNode[i].studentData[j].score;
-					fo << blockNode[i].studentData[j].advisorID;
+					fo << blockNode[i].studentData[j].advisorID;*/
 					
 					j++;
 				}
@@ -359,7 +365,23 @@ class StudentsFileStruct {
 			}
 			
 			fo.close();
-		
+			
+			/*ifstream fi;
+			fi.open("Students.DB", ios::in | ostream::binary);
+			char a[20];
+			unsigned int b;
+			float c;
+			unsigned int d;
+			
+			fi.read((char*)(&a), sizeof(20));
+			fi.read((char*)(&b), sizeof(b));
+			fi.read((char*)(&c), sizeof(c));
+			fi.read((char*)(&d), sizeof(d));
+			cout << a;
+			cout <<b <<c<<d<<endl;	
+			
+			fi.close();*/
+			
 			/*int j = 0;
 			cout << hashTablePrefix << endl;
 			for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
@@ -389,11 +411,13 @@ class StudentsFileStruct {
 		void writeHashTable() {
 			ofstream fo;
 			fo.open("Students.hash", ios::out | ostream::binary);
-		
+			
 			int i = 0;
-			fo << hashTablePrefix; // first in prefix
+			//fo << hashTablePrefix; // first in prefix
+			fo.write((char*)(&hashTablePrefix), sizeof(int));
 			for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
-				fo << hashNode[i].pointBlockNum; // file in hashNode's blockNumber
+				fo.write((char*)(&(hashNode[i].pointBlockNum)), sizeof(int));
+				//fo << hashNode[i].pointBlockNum; // file in hashNode's blockNumber
 				i++;
 			}
 			
@@ -405,22 +429,20 @@ class StudentsFileStruct {
 			ifstream fi;
 			fi.open("Students.hash", ios::in | ostream::binary);
 			int i;
-			/*while(!fi.eof())
-			{
-				
-			}*/
-			/*fi.seekg(0, ios::end);    
-    
-    		int sz = fi.tellg();
-
-    		fi.seekg(0, ios::beg);
- 
-   			fi.read(i, sz);*/
-			/*while(fi.read(i, sizeof(i)))
-			{
+			cout << "-----------this hashTable print start-------------" << endl;
+			fi.read((char*)(&i), sizeof(int));
+			cout << "prefix : " << i << endl;
+			/*for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
+				fi.read(reinterpret_cast<char*>(&i), sizeof(int));
 				cout << i << endl;
 			}*/
+			while(fi.read((char*)(&i), sizeof(int)))
+			{
+				//fi.read(reinterpret_cast<char*>(&i), sizeof(int));
+				cout << i << endl;
+			}
 			
+			cout << "------------this hashTable print end--------------" << endl;		
 			
 			fi.close();
 		}
