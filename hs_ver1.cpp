@@ -10,8 +10,7 @@
 using namespace std;
 /* run this program using the console pauser or add your own getch, system("pause") or input loop */
 
-#define MM 1			// 이 값을 변경시키면 B+ 트리의 차수를 변경할수 있다.
-#define M (MM * 2 + 1)  // 홀수 차수 생성 
+#define M 513  // 홀수 차수 생성 
 #define TR 500 // 스택의 크기
 
 typedef struct InputData {
@@ -37,15 +36,15 @@ typedef struct Blockform {
 typedef struct Node
 {
 	int count;		// 노드에 저장된 Key의 수, 인덱스 노드와 리프노드 구별 플래그	
-	int Key[M-1];			 // Key 
+	float Key[M-1];			 // Key 
 	struct Node* branch[M];  // 주소 
-	StudentData data;
+	StudentData* data;
 } node;
 
 class Bptree{
 	public:
-		StudentData* insertItem(StudentData* k);		// Key 삽입 함수
-		void sequencialSearch(int k);
+		bool insertItem(StudentData* k);		// Key 삽입 함수
+		void kSearch(int k);
 	private:
 		node* root;// root를 가리키는 노드
 };
@@ -306,50 +305,52 @@ class StudentsFileStruct {
 			
 		}
 		
-		void kthNodePrint() {
-			studentTree.sequencialSearch(0);
+		void kthNodePrint(int k) {
+			if(k > 0){
+				studentTree.kSearch(k-1);
+			}
+			else{
+				cout << "invalid input!" << endl;
+			}
 		}
 	
 	
 	
 };
 
-
-StudentData* Bptree::insertItem(StudentData* k)
+bool Bptree::insertItem(StudentData* k)
 {
 	
-	node* trace[TR];	// 삽입될 경로를 저장할 스택용도의 배열
-	int dir[TR];
-	int Key, i;				
+	node* trace[TR];	// node stack of trace to insert location
+	int dir[TR];		// index stack of trace to insert location
+	float Key;
+	int i=0;				//index of stack			
 
-	node* upRight, *p;
-	StudentData* insertFileLocation;
-	insertFileLocation = k;
-	upRight = (node*)insertFileLocation;
-	i = 0;	// trace[]의 index
-
-	p = root;	// p를 가지고 삽입될 위치를 탐색
-	
-	upRight = (node*)k;
+	node* Right, *p;	//Right: insert node
+						//p: point node that we check
+	Right = (node*)k;
+	p = root;
+	Right = (node*)k;
 	
 
 			
-	if (root == NULL)
+	if (root == NULL)	//first
 	{
 		root = new node();
-		root->branch[0] = NULL;
-		root->Key[0] = k->studentID;
-		root->branch[1] = (node*)insertFileLocation;
+		root->branch[0] = NULL;	//in leafnode: next leaf node
+								//in internal node: next level node
+		root->Key[0] = k->score;
+		root->branch[1] = (node*)k;//next level node
 		root->count = M + 1;
-		return insertFileLocation;
+		return true;
 	}
 
-	while (true)	// p가 leaf노드 일때까지 탐색
+	while (true)	// go to leaf node
 	{
 		int j;
 		trace[i] = p;
-		for (j=0; j<p->count%M; j++)	// 한 노드에서 경로를 결정
-			if (p->Key[j] >= k->studentID)
+		for (j=0; j<p->count%M; j++)	//count is not always less than M
+			if (p->Key[j] >= k->score)
 			{
 				dir[i] = j;
 				break;
@@ -363,41 +364,40 @@ StudentData* Bptree::insertItem(StudentData* k)
 	}						// 이 루프에서 나오면 p는 Key값이 삽일될 노드. 
 
 	
-	// 이제 본격적인 삽입을 시작. 
-	Key = k->studentID;
+	// start insert 
+	Key = k->score;
 	while (i != -1)
 	{
 		int path = dir[i];
 		p = trace[i];
-		if (p->count%M != M-1)	// 삽입해도 overflow가 생기지 않으면
+		if (p->count%M != M-1)	// no overflow
 		{
-			int m;
-			for (m=p->count%M; m>path; m--)	// 삽입될 칸부터 끝까지 한칸씩 뒤로. 
+			for (int m=p->count%M; m>path; m--)	// make space 
 			{
 				p->Key[m] = p->Key[m-1];
 				p->branch[m+1] = p->branch[m];
 			}
-			p->Key[path] = Key;		// Key값을 삽입
-			p->branch[path+1] = upRight;	// branch를 관리. 
+			p->Key[path] = Key;		
+			p->branch[path+1] = Right;	
 			p->count++;
 			break;
 		}
 	
-		else	// 삽입하면 overflow가 생기는 경우
+		else	//overflow
 		{
-			int nodeKey[M];
+			float nodeKey[M];
 			node* nodeBranch[M+1];
 			node* newNode;
 			int j, j2;
 			newNode = (node*)malloc(sizeof(node));
 			
 			nodeBranch[0] = p->branch[0];
-			for (j=0, j2=0; j<M; j++, j2++)		// 임시로 크기 M+1인 노드에 순서대로 복사. 
+			for (j=0, j2=0; j<M; j++, j2++)		// save value temporary
 			{
 				if (j == path)
 				{
 					nodeKey[j] = Key;
-					nodeBranch[j+1] = upRight;
+					nodeBranch[j+1] = Right;
 					j++;
 					if (j>=M) 
 						break;
@@ -405,96 +405,97 @@ StudentData* Bptree::insertItem(StudentData* k)
 				nodeKey[j] = p->Key[j2];
 				nodeBranch[j+1] = p->branch[j2+1];
 			}
-			for (j=0; j<M/2; j++)
+			for (j=0; j<M/2; j++)  //front of middle key
 			{
 				p->Key[j] = nodeKey[j];
 				p->branch[j+1] = nodeBranch[j+1];
 			}
 			newNode->branch[0] = nodeBranch[M/2+1];
-			for (j=0; j<M/2; j++)	// 가운데 Key 다음부터는 새로생긴 노드에 복사한다. 
+			for (j=0; j<M/2; j++)	//rear of middle key 
 			{
 				newNode->Key[j] = nodeKey[M/2+1+j];
 				newNode->branch[j+1] = nodeBranch[M/2+2+j];
 			}
 
-			// 만약에 p가 리프노드이면 약간의 수정
-			if (p->count/M == 1)
+			if (p->count/M == 1) // leaf node
 			{
-				newNode->branch[0] = p->branch[0];	// sequencial pointer 관리
-				p->branch[0] = newNode;
-				p->Key[M/2] = nodeKey[M/2];		// 올릴 Key값을 리프노드에도 남김. 
+				newNode->branch[0] = p->branch[0];	// link list.
+				p->branch[0] = newNode;				//new node is on the right of p
+				p->Key[M/2] = nodeKey[M/2];			// leaf node also has that upper level value 
 				p->branch[M/2+1] = nodeBranch[M/2+1];
 				p->count = M + M/2 + 1;
 				newNode->count = M + M/2;
 			}
 			else
 			{
-				p->count = newNode->count = M/2;
+				p->count = M/2;
+				newNode->count = M/2;
 				p->branch[0] = nodeBranch[0];
 			}
 
-			Key = nodeKey[M/2];	// 가운데 Key를 올리는 Key로 한다. 
-			upRight = newNode;	// 새로 만든 node를 올리는 값의 오른쪽 자식으로 
+			Key = nodeKey[M/2];	// send to upper level 
+			Right = newNode;	// right child node 
 		}
-		i--;
+		i--;//stack index descreate like stack pop
 	}
-	if (i == -1)	// root에서 overflow가 생겼을 경우
+	if (i == -1)	// root overflow
 	{
 		root = (node*)malloc(sizeof(node));
 		root->count = 1;
 		root->branch[0] = trace[0];
-		root->branch[1] = upRight;
+		root->branch[1] = Right;
 		root->Key[0] = Key;
 	}
 
-	return insertFileLocation;
+	return true;
 }
 
 
-void Bptree::sequencialSearch(int k)
+
+void Bptree::kSearch(int k)
 {
-	int path, j;
 	node* p = root;
-	int findcnt = 0;
+	int nodeNum = 0;
+	int dataCount = 0;
+
 
 	if (p != NULL)
 	{	
-		while (true)	// p가 leaf노드 일때까지 탐색
+		while (true)	// go to leaf node
 		{
-			int j;
-			for (j=0; j<p->count%M; j++)	// 한 노드에서 경로를 결정
-			{	
-				if (p->Key[j] >= k)
-				{
-					path = j;
-					break;
-				}
-			}
-			if (j == p->count%M)
-				path = p->count%M;
 			if (p->count/M == 1)
 				break;
-			p = p->branch[j];
+			p = p->branch[0];
 		}				
-		if (p->Key[path] == k || k == 0)	// k가 0이면 minimum부터 다 출력한다. 
-		{
 			while (p != NULL)
 			{
-				for (j=0; j<p->count%M; j++)
+				for (int j=0; j<p->count%M; j++)
 				{
-					cout << "(" << ((StudentData*)p->branch[j+1])->studentID << " , " << ((StudentData*)p->branch[j+1])-> score << ")" << endl;
+					if(nodeNum == k){
+						//cout << "(" << ((StudentData*)p->branch[j+1])->score << " , " << ((StudentData*)p->branch[j+1])-> studentID << ")" << endl;
+						dataCount++;
+					}
 				}
+				nodeNum++;
+				if(nodeNum == k+1)
+					break;
 				p = p->branch[0];
 			}
-		}
+			if(p == NULL){
+				cout << "range over!" << endl;
+			}
+			cout << dataCount << endl;
 	}
 }
 
 
 int main(int argc, char** argv) {
+	int k;
 	StudentsFileStruct studentsFS;
 	studentsFS.readStudentTable();
 	studentsFS.calculate_DB_HashTable();
-	studentsFS.kthNodePrint();
+	//cin >> k;
+	for(k = 1; k < 12 ; k++)
+		studentsFS.kthNodePrint(k);
 	return 0;
 }
