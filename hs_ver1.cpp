@@ -21,15 +21,12 @@ typedef struct InputData {
 }StudentData;
 
 typedef struct Hashform {
-	//int binaryNum;
-	int pointBlockNum = 0;
+	int pointBlockNum;
 }HashData;
 
 typedef struct Blockform {
 	int thisBlockNum;
-	//int recordedNum = 0;
 	vector <StudentData> studentData;
-	//StudentData studentData[128];
 }BlockData;
 
 
@@ -52,13 +49,14 @@ class Bptree{
 class StudentsFileStruct {
 	private:
 		int studentNum;
+		int hashTablePrefix;
 		StudentData *studentsData;
 		vector <HashData> hashNode;
 		vector <HashData>::iterator hash_iter;
 		vector <BlockData> blockNode;
 		vector <BlockData>::iterator block_iter;
 		Bptree studentTree;
-		//list <BlockData>::iterator block_iter;
+	
 		
 	public:
 		void readStudentTable() {
@@ -67,7 +65,6 @@ class StudentsFileStruct {
 			string tmp_studentNum;
 			getline(readStudFile, tmp_studentNum, '\n');
 			studentNum = atoi(tmp_studentNum.c_str());
-			//cout << studentNum << endl;
 			studentsData = new StudentData[studentNum];
 			
 			int dataLocate = 0;
@@ -77,7 +74,7 @@ class StudentsFileStruct {
 				studentsData[dataLocate].studentID = atoi(tmp_studentID.c_str());
 				studentsData[dataLocate].score = atof(tmp_score.c_str());
 				studentsData[dataLocate].advisorID = atoi(tmp_advisorID.c_str());
-				studentTree.insertItem(studentsData+dataLocate);
+				//studentTree.insertItem(studentsData+dataLocate);
 				//cout << studentsData[dataLocate].name << "," << studentsData[dataLocate].studentID << "," << studentsData[dataLocate].score << "," << studentsData[dataLocate].advisorID << endl;
 				dataLocate ++;
 				
@@ -96,10 +93,6 @@ class StudentsFileStruct {
 		}*/
 		
 		string hashFunction(unsigned int studentID) {
-			/*string binary = std::bitset<8>(128).to_string();
-			std::cout << binary << endl;*/
-			//int hashingValue = 0;
-			//int decimal_pow = 0;
 			
 			if(studentID == 0) {
 				return "0";
@@ -119,15 +112,21 @@ class StudentsFileStruct {
 			
 			int howManyInput = 0;                                        
 			int useBinaryDigit = 0;
-			int endBlockLocate = 1;
-			
+			int endBlockLocate = 0;
+			hashTablePrefix = useBinaryDigit;
 			//start input studentData
 			while(howManyInput < studentNum) {
 				string hasingValue = hashFunction(studentsData[howManyInput].studentID);
+				//cout << hasingValue << " ";
 				//cout << hasingValue << endl;
 				if(hashNode.empty()) {
 					hashNode.push_back(tmp_hashData);
+					hashNode[0].pointBlockNum = endBlockLocate;
+					tmp_blockData.thisBlockNum = endBlockLocate;
+					blockNode.push_back(tmp_blockData);
+					endBlockLocate ++;
 				}
+				
 				unsigned int thisHashLoc = 0;
 				string hashLocBi;
 				
@@ -139,155 +138,211 @@ class StudentsFileStruct {
 							hashLocBi = "0" + hashLocBi;
 						}
 					}
+
+					bool outThisFor = false;
 					
 					if(useBinaryDigit == 0) {
-						// this hashLoc = 0;
 						break;
 					} else {
-						bool outThisFor = false;
-						
 						if(hasingValue.substr(hasingValue.length() - useBinaryDigit, useBinaryDigit) == hashLocBi) {
-							//cout << hasingValue.substr(hasingValue.length() - useBinaryDigit, useBinaryDigit) << endl;
 							outThisFor = true;
 						}
-						if(outThisFor) {
-							break;
-						}
+						
 					}
 					
+					if(outThisFor) {
+							break;
+					}
 					thisHashLoc ++;
 				}
-				//cout << hashNode[thisHashLoc].pointBlockNum;
 				
 				//start this data input block
-				if(hashNode[thisHashLoc].pointBlockNum == 0) { // this hashNode's pointBlock is null
-					hashNode[thisHashLoc].pointBlockNum = endBlockLocate;
-					tmp_blockData.thisBlockNum = endBlockLocate;
-					tmp_blockData.studentData.push_back(studentsData[howManyInput]);
-					blockNode.push_back(tmp_blockData);
-					endBlockLocate ++;
-				} else { //this hashNode's pointBlock is exist .. this excute all case, except first do
-					int thisBlockLoc = 0;
+				//this hashNode's pointBlock is exist .. this excute all case, except first do
+				int thisBlockLoc = 0;
 					
-					//find blockNode's location mathing this data's hasingValue
-					for(block_iter = blockNode.begin(); block_iter != blockNode.end(); block_iter++) {
-						if(hashNode[thisHashLoc].pointBlockNum == blockNode[thisBlockLoc].thisBlockNum) {
-							break;
-						}
-						thisBlockLoc ++;
+				//find blockNode's location mathing this data's hasingValue
+				for(block_iter = blockNode.begin(); block_iter != blockNode.end(); block_iter++) {
+					if(hashNode[thisHashLoc].pointBlockNum == blockNode[thisBlockLoc].thisBlockNum) {
+						break;
 					}
-					
-					
-					//overflow is exist or not .. input this data in this block
-					if(blockNode[thisBlockLoc].studentData.size() <= 128 ) { // if blockData's size is smaller 128
-						blockNode[thisBlockLoc].studentData.push_back(studentsData[howManyInput]);
-					} else { // if overflow is exist
-						//bool is_overflow = true;
-						
-						//calculate hash's pointer number about this node
-						vector <int> useHashNode;
-						int hashPointerNum = 0;
-						for(int i = 0; i < hashNode.size(); i++) {
-							if(hashNode[i].pointBlockNum == blockNode[thisBlockLoc].thisBlockNum) {
-								useHashNode.push_back(hashPointerNum);
-							hashPointerNum ++;
-							}
-						}
-							
-						BlockData tmp_Allo_blockData;
-						
-						//according to hash's pointer number, calculate change
-						if(hashPointerNum == 1) { // if hash's pointer number = 1, this hashtable is double.
-							//cout << "pointerNum 1" << endl;
-							useBinaryDigit ++;
-							vector <HashData> tmp_hashNode = hashNode;
-							hashNode.insert(hashNode.end(), tmp_hashNode.begin(), tmp_hashNode.end());
-							/*int j = 0;
-							
-							for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
-								cout << hashNode[j].pointBlockNum << endl;
-								j++;
-							}
-							cout << endl;*/
-							BlockData tmp2_blockData;
-							tmp_Allo_blockData.thisBlockNum = endBlockLocate;
-							blockNode.push_back(tmp_Allo_blockData);
-							vector <StudentData>::iterator studData_iter;
-							
-							int thisBloData_loc = 0;
-							//vector <StudentData> newBlockData;
-							
-							for(studData_iter = blockNode[thisBlockLoc].studentData.begin(); studData_iter != blockNode[thisBlockLoc].studentData.end();) {
-								
-								string reHasingValue = hashFunction(blockNode[thisBlockLoc].studentData[thisBloData_loc].studentID);
-								
-								string RehashLocBi;
-								if(useBinaryDigit == 1) {
-									RehashLocBi = "1";
-								} else {
-									
-								RehashLocBi = "1" + hashLocBi;
-								
-								}
-								
-								if(reHasingValue.substr(reHasingValue.length() - useBinaryDigit, useBinaryDigit) == RehashLocBi) {
-									blockNode[endBlockLocate - 1].studentData.push_back(blockNode[thisBlockLoc].studentData[thisBloData_loc]);
-									
-									//cout << reHasingValue.substr(reHasingValue.length() - useBinaryDigit, useBinaryDigit) << endl;
-									studData_iter = blockNode[thisBlockLoc].studentData.erase(studData_iter);
-								} else {
-									studData_iter ++;
-								}
-								
-								thisBloData_loc++;									
-							}
-							
-							
-							int newHashLoc = 1;
-							for(int i = 1; i < useBinaryDigit; i ++) {
-								newHashLoc *= 2;
-							}
-							hashNode[thisHashLoc + newHashLoc].pointBlockNum = endBlockLocate;
-							endBlockLocate ++;
-							
-						} else { // if hash's pointer number is not 1, this hashTable use.
-								//and hash's pointer number is 2, 4, 8, ....
-							
-							/*미구현*/
-							 
-							string RehasingValue = hashFunction(studentsData[howManyInput].studentID);
-						
-							tmp_Allo_blockData.thisBlockNum = endBlockLocate;
-							//blockNode.push_back(tmp_Allo_blockData);
-							//cout << "pointerNum not 1" << endl;
-							
-					 	}
-								
-							
-							
-						
-						/*vector<int>::iterator it;
-    					it=find(vi.begin(),vi.end(),55);
-     					cout << *it << endl;
-     					vi.erase(it+1);
-     					cout << *it << endl;*/
-     					
-						/*vector <HashData> tmp_hashNode = hashNode;
-						hashNode.insert(hashNode.end(), tmp_hashNode.begin(), tmp_hashNode.end());*/
-					}
+					thisBlockLoc ++;
 				}
+					
+					
+				//overflow is exist or not .. input this data in this block
+				if(blockNode[thisBlockLoc].studentData.size() < 128 ) { // if blockData's size is smaller 128
+					blockNode[thisBlockLoc].studentData.push_back(studentsData[howManyInput]);
 				
-				//if(hash_iter=find(hashNode.begin(), hashNode.end(), binaryNum))
+				} else { // if overflow is exist
 				
-				
+					vector <int> useHashNode;
+					int hashPointerNum = 0;
+					for(int i = 0; i < hashNode.size(); i++) {
+						if(hashNode[i].pointBlockNum == blockNode[thisBlockLoc].thisBlockNum) {
+							useHashNode.push_back(i);
+						hashPointerNum ++;
+						}
+					}
+					
+					BlockData tmp_Allo_blockData;
+						
+					//according to hash's pointer number, calculate change
+					if(hashPointerNum == 1) { // if hash's pointer number = 1, this hashtable is double.
+						
+						//prefix increase & hashTable double
+						useBinaryDigit ++;
+						vector <HashData> tmp_hashNode = hashNode;
+						hashNode.insert(hashNode.end(), tmp_hashNode.begin(), tmp_hashNode.end());
+					
+						/*int j = 0;
+						
+						for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
+							cout << hashNode[j].pointBlockNum << endl;
+							j++;
+						}
+						cout << endl << endl;*/
+						
+						//addition block
+						tmp_Allo_blockData.thisBlockNum = endBlockLocate;
+						blockNode.push_back(tmp_Allo_blockData);
+						vector <StudentData>::iterator studData_iter;
+							
+						string RehashLocBi;
+							
+						if(useBinaryDigit == 1) {
+							RehashLocBi = "1";
+						} else {
+							RehashLocBi = "1" + hashLocBi;
+						}
+						
+						//start new block's alloction
+						int alloBloData_loc = 0;
+						for(studData_iter = blockNode[thisBlockLoc].studentData.begin(); studData_iter != blockNode[thisBlockLoc].studentData.end();) {
+							
+							string reHasingValue = hashFunction(blockNode[thisBlockLoc].studentData[alloBloData_loc].studentID);
+								
+							if(reHasingValue.substr(reHasingValue.length() - useBinaryDigit, useBinaryDigit) == RehashLocBi) {
+								blockNode[endBlockLocate].studentData.push_back(blockNode[thisBlockLoc].studentData[alloBloData_loc]);
+
+								studData_iter = blockNode[thisBlockLoc].studentData.erase(studData_iter);
+							} else {
+								studData_iter ++;
+								alloBloData_loc++;
+							}
+								
+																	
+						}
+						
+						//this data in block
+						if(hasingValue.substr(hasingValue.length() - useBinaryDigit, useBinaryDigit) == RehashLocBi) {
+							blockNode[endBlockLocate].studentData.push_back(studentsData[howManyInput]);
+						} else {
+							blockNode[thisBlockLoc].studentData.push_back(studentsData[howManyInput]);
+						}
+							
+						
+						int newHashLoc = 1;
+						for(int i = 1; i < useBinaryDigit; i ++) {
+							newHashLoc *= 2;
+						}
+						
+						hashNode[thisHashLoc + newHashLoc].pointBlockNum = endBlockLocate;
+						
+						
+						endBlockLocate ++;
+					} else { // if hash's pointer number is not 1, this hashTable use.
+							//and hash's pointer number is 2, 4, 8, ....
+							
+						//addition block
+						tmp_Allo_blockData.thisBlockNum = endBlockLocate;
+						blockNode.push_back(tmp_Allo_blockData);
+						
+						int useHashBi_loc = 0;
+						int tmp_pointerNum = hashPointerNum;
+						while(tmp_pointerNum != 1) {
+							tmp_pointerNum /= 2;
+							useHashBi_loc ++;
+						}
+							
+						string first_level_RehashLocBi = hashFunction(useHashNode[0]);
+						
+						if(first_level_RehashLocBi.length() < useBinaryDigit) {
+							while(first_level_RehashLocBi.length() != useBinaryDigit) {
+								first_level_RehashLocBi = "0" + first_level_RehashLocBi;
+							}
+						}
+							
+						int manyPointDigit = useBinaryDigit - useHashBi_loc + 1;
+							
+						string RehashLocBi = first_level_RehashLocBi.substr(first_level_RehashLocBi.length() - (manyPointDigit - 1), (manyPointDigit - 1));
+						RehashLocBi = "1" + RehashLocBi;
+						
+						vector <StudentData>::iterator studData_iter;
+						int alloBloData_loc = 0;
+						for(studData_iter = blockNode[thisBlockLoc].studentData.begin(); studData_iter != blockNode[thisBlockLoc].studentData.end();) {
+								
+							string reHasingValue = hashFunction(blockNode[thisBlockLoc].studentData[alloBloData_loc].studentID);
+							
+							if(reHasingValue.substr(reHasingValue.length() - manyPointDigit, manyPointDigit) == RehashLocBi) {
+								blockNode[endBlockLocate].studentData.push_back(blockNode[thisBlockLoc].studentData[alloBloData_loc]);
+
+								studData_iter = blockNode[thisBlockLoc].studentData.erase(studData_iter);
+							} else {
+								studData_iter ++;
+								alloBloData_loc++;
+							}
+																
+						}
+							
+						//this data in block
+						if(hasingValue.substr(hasingValue.length() - useBinaryDigit, useBinaryDigit) == RehashLocBi) {
+							blockNode[endBlockLocate].studentData.push_back(studentsData[howManyInput]);
+						} else {
+							blockNode[thisBlockLoc].studentData.push_back(studentsData[howManyInput]);							}
+							
+						int changeHashPointNum = hashPointerNum / 2;
+						for(int k = 0; k < (hashPointerNum/2); k++) {
+							hashNode[useHashNode[changeHashPointNum]].pointBlockNum = endBlockLocate;
+							changeHashPointNum ++;
+						}
+							
+						endBlockLocate ++;
+
+				 	}
+										
+				}
+			
 				howManyInput ++;
+				hashTablePrefix = useBinaryDigit;
 			}
 		}
 		
 		
 		void writeStudentDB() {
-			//readStudentTable();
-		} 
+			
+			// seekp, g사용해서 student.DB에 넣어야함
+			int j = 0;
+			cout << hashTablePrefix << endl;
+			for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
+				cout << hashNode[j].pointBlockNum << endl;
+				j++;
+			}
+			cout << endl << endl;
+			
+			int i = 0;
+			vector <StudentData>::iterator studData_iter;
+			for(block_iter = blockNode.begin(); block_iter != blockNode.end(); block_iter++) {
+				int j = 0;
+				for(studData_iter = blockNode[i].studentData.begin(); studData_iter != blockNode[i].studentData.end(); studData_iter++) {
+					//cout << j << " ";
+					cout << hashFunction(blockNode[i].studentData[j].studentID) << " ";
+					j++;
+				}
+				cout << endl << endl;
+				i ++;
+				
+			}
+		}
 		
 		void writeHashTable() {
 			
@@ -492,7 +547,8 @@ int main(int argc, char** argv) {
 	StudentsFileStruct studentsFS;
 	studentsFS.readStudentTable();
 	studentsFS.calculate_DB_HashTable();
-	cin >> k;
-	studentsFS.kthNodePrint(k);
+	studentsFS.writeStudentDB();
+	//cin >> k;
+	//studentsFS.kthNodePrint(k);
 	return 0;
 }
