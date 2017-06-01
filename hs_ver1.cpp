@@ -32,21 +32,26 @@ typedef struct Blockform {
 	vector <StudentData> studentData;
 }BlockData;
 
+typedef struct NodeData{
+	float score;
+	int bNum;
+}nData;
 
 typedef struct Node
 {
-	int count;		// 노드에 저장된 Key의 수, 인덱스 노드와 리프노드 구별 플래그	
+	int count;		// number of key	
 	float Key[M-1];			 // Key 
-	struct Node* branch[M];  // 주소 
+	struct Node* branch[M];  // next node 
 	StudentData* data;
 } node;
 
 class Bptree{
 	public:
-		bool insertItem(StudentData* k);		// Key 삽입 함수
+		bool insertItem(nData* k);		// Key insert
 		void kSearch(int k);
+		nData* getLeaves(int n); // get n leaf nodes 
 	private:
-		node* root;// root를 가리키는 노드
+		node* root;
 };
 
 class StudentsFileStruct {
@@ -59,7 +64,7 @@ class StudentsFileStruct {
 		vector <BlockData> blockNode; // blockNoes is vector
 		vector <BlockData>::iterator block_iter;
 		Bptree studentTree;
-	
+		nData *nodeData;
 		
 	public:
 		
@@ -447,20 +452,61 @@ class StudentsFileStruct {
 			fi.close();
 		}
 		
-		void kthNodePrint(int k) {
+		void make_B_plusTree() {
+			int k = 0;
+			nodeData = new nData[studentNum];
+			for(int i = 0; i < blockNode.size(); i++){
+				for(int j=0; j < blockNode[i].studentData.size();j++){
+					nodeData[k].score = blockNode[i].studentData[j].score;
+					nodeData[k].bNum = blockNode[i].thisBlockNum;
+					studentTree.insertItem(nodeData+k);
+					k++;
+				}
+			}
+		}
+		
+		void kthNodePrint() {
+			int k;
+			cout << "what is k? : ";
+			cin >> k;
 			if(k > 0){
 				studentTree.kSearch(k-1);
 			}
 			else{
 				cout << "invalid input!" << endl;
+				kthNodePrint();
 			}
+		}
+		
+		void idxOut(){
+  			ofstream fo;
+			nData* leafNodes;
+			char comma = ',';
+			char enter = '\n';
+			leafNodes = studentTree.getLeaves(studentNum);
+ 			fo.open("Student_score.idx", ostream::binary);  
+  			if (!fo) {   // if(fo.fail())
+    			cerr << "idx open failed.." << endl;
+    			exit(1);
+  			}
+
+  			for (int i = 0; i < studentNum; i++){ //save leaf nodes
+   	 			//fo.write((char*)&i, sizeof(int));
+  				fo.write((char*)&(leafNodes[i].score),sizeof(float));
+				fo.write((char*)&comma,sizeof(char));
+				fo.write((char*)&(leafNodes[i].bNum),sizeof(int));
+				fo.write((char*)&enter,sizeof(char));			
+			}
+			fo.close();
+
+  
 		}
 	
 	
 	
 };
 
-bool Bptree::insertItem(StudentData* k)
+bool Bptree::insertItem(nData* k)
 {
 	
 	node* trace[TR];	// node stack of trace to insert location
@@ -472,7 +518,6 @@ bool Bptree::insertItem(StudentData* k)
 						//p: point node that we check
 	Right = (node*)k;
 	p = root;
-	Right = (node*)k;
 	
 
 			
@@ -594,8 +639,7 @@ bool Bptree::insertItem(StudentData* k)
 
 
 
-void Bptree::kSearch(int k)
-{
+void Bptree::kSearch(int k){
 	node* p = root;
 	int nodeNum = 0;
 
@@ -607,37 +651,68 @@ void Bptree::kSearch(int k)
 			if (p->count/M == 1)
 				break;
 			p = p->branch[0];
-		}				
-			while (p != NULL)
+		}
+		cout << "(score,block number)" << endl;				
+		while (p != NULL)
+		{
+			for (int j=0; j<p->count%M; j++)
 			{
-				for (int j=0; j<p->count%M; j++)
-				{
-					if(nodeNum == k){
-						cout << "(" << ((StudentData*)p->branch[j+1])->score << " , " << ((StudentData*)p->branch[j+1])-> studentID << ")" << endl;
-						
-					}
+				if(nodeNum == k){
+					cout << "(" << ((nData*)p->branch[j+1])->score << " , " << ((nData*)p->branch[j+1])-> bNum << ")" << endl;
+					
 				}
-				nodeNum++;
-				if(nodeNum == k+1)
-					break;
-				p = p->branch[0];
 			}
-			if(p == NULL){
-				cout << "range over!" << endl;
-			}
+			nodeNum++;
+			if(nodeNum == k+1)
+				break;
+			p = p->branch[0];
+		}
+		if(p == NULL){
+			cout << "range over!" << endl;
+		}
 	}
+}
+
+nData* Bptree::getLeaves(int n){
+	nData* leaves;
+	leaves = new nData[n];
+	int i = 0;
+	node* p = root;
+	if (p != NULL)
+	{	
+		while (true)	// go to leaf node
+		{
+			if (p->count/M == 1)
+				break;
+			p = p->branch[0];
+		}				
+		while (p != NULL)
+		{
+			for (int j=0; j<p->count%M; j++)
+			{
+				{
+					leaves[i].score = ((nData*)p->branch[j+1])->score;
+					leaves[i].bNum=((nData*)p->branch[j+1])-> bNum;
+					i++;
+				}
+			}
+			p = p->branch[0];
+		}
+		
+	}
+	return leaves;
 }
 
 
 int main(int argc, char** argv) {
-	int k;
 	StudentsFileStruct studentsFS;
 	studentsFS.readStudentTable();
 	studentsFS.calculate_DB_HashTable();
 	studentsFS.writeStudentDB();
 	studentsFS.writeHashTable();
 	studentsFS.hashTablePrint();
-	//cin >> k;
-	//studentsFS.kthNodePrint(k);
+	studentsFS.make_B_plusTree();
+	studentsFS.kthNodePrint();
+	studentsFS.idxOut();
 	return 0;
 }
