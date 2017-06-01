@@ -456,7 +456,6 @@ void Bptree::kSearch(int k)
 {
 	node* p = root;
 	int nodeNum = 0;
-	int dataCount = 0;
 
 
 	if (p != NULL)
@@ -472,8 +471,8 @@ void Bptree::kSearch(int k)
 				for (int j=0; j<p->count%M; j++)
 				{
 					if(nodeNum == k){
-						//cout << "(" << ((StudentData*)p->branch[j+1])->score << " , " << ((StudentData*)p->branch[j+1])-> studentID << ")" << endl;
-						dataCount++;
+						cout << "(" << ((StudentData*)p->branch[j+1])->score << " , " << ((StudentData*)p->branch[j+1])-> studentID << ")" << endl;
+						
 					}
 				}
 				nodeNum++;
@@ -484,7 +483,6 @@ void Bptree::kSearch(int k)
 			if(p == NULL){
 				cout << "range over!" << endl;
 			}
-			cout << dataCount << endl;
 	}
 }
 
@@ -494,8 +492,7 @@ int main(int argc, char** argv) {
 	StudentsFileStruct studentsFS;
 	studentsFS.readStudentTable();
 	studentsFS.calculate_DB_HashTable();
-	//cin >> k;
-	for(k = 1; k < 12 ; k++)
-		studentsFS.kthNodePrint(k);
+	cin >> k;
+	studentsFS.kthNodePrint(k);
 	return 0;
 }
