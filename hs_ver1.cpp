@@ -10,6 +10,10 @@
 using namespace std;
 /* run this program using the console pauser or add your own getch, system("pause") or input loop */
 
+#define MM 1			// 이 값을 변경시키면 B+ 트리의 차수를 변경할수 있다.
+#define M (MM * 2 + 1)  // 홀수 차수 생성 
+#define TR 500 // 스택의 크기
+
 typedef struct InputData {
 	char name[20];
 	unsigned int studentID;
@@ -29,6 +33,23 @@ typedef struct Blockform {
 	//StudentData studentData[128];
 }BlockData;
 
+
+typedef struct Node
+{
+	int count;		// 노드에 저장된 Key의 수, 인덱스 노드와 리프노드 구별 플래그	
+	int Key[M-1];			 // Key 
+	struct Node* branch[M];  // 주소 
+	StudentData data;
+} node;
+
+class Bptree{
+	public:
+		StudentData* insertItem(StudentData* k);		// Key 삽입 함수
+		void sequencialSearch(int k);
+	private:
+		node* root;// root를 가리키는 노드
+};
+
 class StudentsFileStruct {
 	private:
 		int studentNum;
@@ -37,6 +58,7 @@ class StudentsFileStruct {
 		vector <HashData>::iterator hash_iter;
 		vector <BlockData> blockNode;
 		vector <BlockData>::iterator block_iter;
+		Bptree studentTree;
 		//list <BlockData>::iterator block_iter;
 		
 	public:
@@ -56,6 +78,7 @@ class StudentsFileStruct {
 				studentsData[dataLocate].studentID = atoi(tmp_studentID.c_str());
 				studentsData[dataLocate].score = atof(tmp_score.c_str());
 				studentsData[dataLocate].advisorID = atoi(tmp_advisorID.c_str());
+				studentTree.insertItem(studentsData+dataLocate);
 				//cout << studentsData[dataLocate].name << "," << studentsData[dataLocate].studentID << "," << studentsData[dataLocate].score << "," << studentsData[dataLocate].advisorID << endl;
 				dataLocate ++;
 				
@@ -284,15 +307,194 @@ class StudentsFileStruct {
 		}
 		
 		void kthNodePrint() {
-			
+			studentTree.sequencialSearch(0);
 		}
 	
 	
 	
 };
+
+
+StudentData* Bptree::insertItem(StudentData* k)
+{
+	
+	node* trace[TR];	// 삽입될 경로를 저장할 스택용도의 배열
+	int dir[TR];
+	int Key, i;				
+
+	node* upRight, *p;
+	StudentData* insertFileLocation;
+	insertFileLocation = k;
+	upRight = (node*)insertFileLocation;
+	i = 0;	// trace[]의 index
+
+	p = root;	// p를 가지고 삽입될 위치를 탐색
+	
+	upRight = (node*)k;
+	
+
+			
+	if (root == NULL)
+	{
+		root = new node();
+		root->branch[0] = NULL;
+		root->Key[0] = k->studentID;
+		root->branch[1] = (node*)insertFileLocation;
+		root->count = M + 1;
+		return insertFileLocation;
+	}
+
+	while (true)	// p가 leaf노드 일때까지 탐색
+	{
+		int j;
+		trace[i] = p;
+		for (j=0; j<p->count%M; j++)	// 한 노드에서 경로를 결정
+			if (p->Key[j] >= k->studentID)
+			{
+				dir[i] = j;
+				break;
+			}
+		if (j == p->count%M)
+			dir[i] = p->count%M;
+		if (p->count/M == 1)
+			break;
+		p = p->branch[j];
+		i++;
+	}						// 이 루프에서 나오면 p는 Key값이 삽일될 노드. 
+
+	
+	// 이제 본격적인 삽입을 시작. 
+	Key = k->studentID;
+	while (i != -1)
+	{
+		int path = dir[i];
+		p = trace[i];
+		if (p->count%M != M-1)	// 삽입해도 overflow가 생기지 않으면
+		{
+			int m;
+			for (m=p->count%M; m>path; m--)	// 삽입될 칸부터 끝까지 한칸씩 뒤로. 
+			{
+				p->Key[m] = p->Key[m-1];
+				p->branch[m+1] = p->branch[m];
+			}
+			p->Key[path] = Key;		// Key값을 삽입
+			p->branch[path+1] = upRight;	// branch를 관리. 
+			p->count++;
+			break;
+		}
+	
+		else	// 삽입하면 overflow가 생기는 경우
+		{
+			int nodeKey[M];
+			node* nodeBranch[M+1];
+			node* newNode;
+			int j, j2;
+			newNode = (node*)malloc(sizeof(node));
+			
+			nodeBranch[0] = p->branch[0];
+			for (j=0, j2=0; j<M; j++, j2++)		// 임시로 크기 M+1인 노드에 순서대로 복사. 
+			{
+				if (j == path)
+				{
+					nodeKey[j] = Key;
+					nodeBranch[j+1] = upRight;
+					j++;
+					if (j>=M) 
+						break;
+				}
+				nodeKey[j] = p->Key[j2];
+				nodeBranch[j+1] = p->branch[j2+1];
+			}
+			for (j=0; j<M/2; j++)
+			{
+				p->Key[j] = nodeKey[j];
+				p->branch[j+1] = nodeBranch[j+1];
+			}
+			newNode->branch[0] = nodeBranch[M/2+1];
+			for (j=0; j<M/2; j++)	// 가운데 Key 다음부터는 새로생긴 노드에 복사한다. 
+			{
+				newNode->Key[j] = nodeKey[M/2+1+j];
+				newNode->branch[j+1] = nodeBranch[M/2+2+j];
+			}
+
+			// 만약에 p가 리프노드이면 약간의 수정
+			if (p->count/M == 1)
+			{
+				newNode->branch[0] = p->branch[0];	// sequencial pointer 관리
+				p->branch[0] = newNode;
+				p->Key[M/2] = nodeKey[M/2];		// 올릴 Key값을 리프노드에도 남김. 
+				p->branch[M/2+1] = nodeBranch[M/2+1];
+				p->count = M + M/2 + 1;
+				newNode->count = M + M/2;
+			}
+			else
+			{
+				p->count = newNode->count = M/2;
+				p->branch[0] = nodeBranch[0];
+			}
+
+			Key = nodeKey[M/2];	// 가운데 Key를 올리는 Key로 한다. 
+			upRight = newNode;	// 새로 만든 node를 올리는 값의 오른쪽 자식으로 
+		}
+		i--;
+	}
+	if (i == -1)	// root에서 overflow가 생겼을 경우
+	{
+		root = (node*)malloc(sizeof(node));
+		root->count = 1;
+		root->branch[0] = trace[0];
+		root->branch[1] = upRight;
+		root->Key[0] = Key;
+	}
+
+	return insertFileLocation;
+}
+
+
+void Bptree::sequencialSearch(int k)
+{
+	int path, j;
+	node* p = root;
+	int findcnt = 0;
+
+	if (p != NULL)
+	{	
+		while (true)	// p가 leaf노드 일때까지 탐색
+		{
+			int j;
+			for (j=0; j<p->count%M; j++)	// 한 노드에서 경로를 결정
+			{	
+				if (p->Key[j] >= k)
+				{
+					path = j;
+					break;
+				}
+			}
+			if (j == p->count%M)
+				path = p->count%M;
+			if (p->count/M == 1)
+				break;
+			p = p->branch[j];
+		}				
+		if (p->Key[path] == k || k == 0)	// k가 0이면 minimum부터 다 출력한다. 
+		{
+			while (p != NULL)
+			{
+				for (j=0; j<p->count%M; j++)
+				{
+					cout << "(" << ((StudentData*)p->branch[j+1])->studentID << " , " << ((StudentData*)p->branch[j+1])-> score << ")" << endl;
+				}
+				p = p->branch[0];
+			}
+		}
+	}
+}
+
+
 int main(int argc, char** argv) {
 	StudentsFileStruct studentsFS;
 	studentsFS.readStudentTable();
 	studentsFS.calculate_DB_HashTable();
+	studentsFS.kthNodePrint();
 	return 0;
 }
