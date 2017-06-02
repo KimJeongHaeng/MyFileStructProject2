@@ -322,10 +322,11 @@ class StudentsFileStruct {
 						}
 						
 						// hashpointer realloction
-						int changeHashPointNum = hashPointerNum / 2;
+						
+						//int changeHashPointNum = hashPointerNum / 2;
 						for(int k = 0; k < (hashPointerNum/2); k++) {
 							hashNode[useHashNode[k*2 + 1]].pointBlockNum = endBlockLocate;
-							changeHashPointNum ++;
+							//changeHashPointNum ++;
 						}
 							
 						endBlockLocate ++;
