@@ -275,7 +275,6 @@ class StudentsFileStruct {
 						
 						//according do pointer Number, useBinaryDIgit diffrent! use n digit : pointer 2 -> same, pointer 4 -> n - 1....
 						
-						//
 						int useHashBi_loc = 0;
 						int tmp_pointerNum = hashPointerNum;
 						while(tmp_pointerNum != 1) {
@@ -325,7 +324,7 @@ class StudentsFileStruct {
 						// hashpointer realloction
 						int changeHashPointNum = hashPointerNum / 2;
 						for(int k = 0; k < (hashPointerNum/2); k++) {
-							hashNode[useHashNode[changeHashPointNum]].pointBlockNum = endBlockLocate;
+							hashNode[useHashNode[k*2 + 1]].pointBlockNum = endBlockLocate;
 							changeHashPointNum ++;
 						}
 							
@@ -354,7 +353,7 @@ class StudentsFileStruct {
 				for(studData_iter = blockNode[i].studentData.begin(); studData_iter != blockNode[i].studentData.end(); studData_iter++) {
 					// file in blockNode's studentData
 					fo.write((char*)(&(blockNode[i].studentData[j].name)), sizeof(blockNode[i].studentData[j].name));
-					//fo.seekp(4096 * i + 20 * j);
+					//fo.seekp(4096 * i + '20 * j);
 					fo.write((char*)(&(blockNode[i].studentData[j].studentID)), sizeof(blockNode[i].studentData[j].studentID));
 					fo.write((char*)(&(blockNode[i].studentData[j].score)), sizeof(blockNode[i].studentData[j].score));
 					fo.write((char*)(&(blockNode[i].studentData[j].advisorID)), sizeof(blockNode[i].studentData[j].advisorID));
@@ -369,7 +368,7 @@ class StudentsFileStruct {
 				i ++;
 			}
 			
-			fo.close();
+			fo.close();		
 			
 			/*ifstream fi;
 			fi.open("Students.DB", ios::in | ostream::binary);
@@ -385,30 +384,7 @@ class StudentsFileStruct {
 			cout << a;
 			cout <<b <<c<<d<<endl;	
 			
-			fi.close();*/
-			
-			/*int j = 0;
-			cout << hashTablePrefix << endl;
-			for(hash_iter = hashNode.begin(); hash_iter != hashNode.end(); hash_iter++) {
-				cout << hashNode[j].pointBlockNum << endl;
-				j++;
-			}
-			cout << endl << endl;
-			
-			int i = 0;
-			vector <StudentData>::iterator studData_iter;
-			for(block_iter = blockNode.begin(); block_iter != blockNode.end(); block_iter++) {
-				int j = 0;
-				for(studData_iter = blockNode[i].studentData.begin(); studData_iter != blockNode[i].studentData.end(); studData_iter++) {
-					//cout << j << " ";
-					cout << hashFunction(blockNode[i].studentData[j].studentID) << " ";
-					j++;
-				}
-				cout << endl << endl;
-				i ++;
-				
-			}*/
-			
+			fi.close();*/	
 			
 		}
 		
