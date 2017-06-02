@@ -10,8 +10,8 @@
 using namespace std;
 /* run this program using the console pauser or add your own getch, system("pause") or input loop */
 
-#define M 513  // 홀수 차수 생성 
-#define TR 500 // 스택의 크기
+#define M 513   
+#define TR 500 // size of stack
 
 //student's dataStruct
 typedef struct InputData {
@@ -32,7 +32,7 @@ typedef struct Blockform {
 	vector <StudentData> studentData;
 }BlockData;
 
-typedef struct NodeData{
+typedef struct NodeData{ // will be stored in b+tree
 	float score;
 	int bNum;
 }nData;
@@ -49,7 +49,7 @@ class Bptree{
 	public:
 		bool insertItem(nData* k);		// Key insert
 		void kSearch(int k);
-		nData* getLeaves(int n); // get n leaf nodes 
+		void idxOut(); // make idx 
 	private:
 		node* root;
 };
@@ -429,7 +429,7 @@ class StudentsFileStruct {
 			fi.close();
 		}
 		
-		void make_B_plusTree() {
+		void make_B_plusTree() {//insert all data
 			int k = 0;
 			nodeData = new nData[studentNum];
 			for(int i = 0; i < blockNode.size(); i++){
@@ -442,7 +442,7 @@ class StudentsFileStruct {
 			}
 		}
 		
-		void kthNodePrint() {
+		void kthNodePrint() {//find kth leaf node
 			int k;
 			cout << "what is k? : ";
 			cin >> k;
@@ -455,28 +455,9 @@ class StudentsFileStruct {
 			}
 		}
 		
-		void idxOut(){
-  			ofstream fo;
-			nData* leafNodes;
-			char comma = ',';
-			char enter = '\n';
-			leafNodes = studentTree.getLeaves(studentNum);
- 			fo.open("Student_score.idx", ostream::binary);  
-  			if (!fo) {   // if(fo.fail())
-    			cerr << "idx open failed.." << endl;
-    			exit(1);
-  			}
-
-  			for (int i = 0; i < studentNum; i++){ //save leaf nodes
-   	 			//fo.write((char*)&i, sizeof(int));
-  				fo.write((char*)&(leafNodes[i].score),sizeof(float));
-				fo.write((char*)&comma,sizeof(char));
-				fo.write((char*)&(leafNodes[i].bNum),sizeof(int));
-				fo.write((char*)&enter,sizeof(char));			
-			}
-			fo.close();
-
-  
+		void idxOut(){//make idx file
+  			studentTree.idxOut();
+		
 		}
 	
 	
@@ -525,8 +506,7 @@ bool Bptree::insertItem(nData* k)
 			break;
 		p = p->branch[j];
 		i++;
-	}						// 이 루프에서 나오면 p는 Key값이 삽일될 노드. 
-
+	}					 
 	
 	// start insert 
 	Key = k->score;
@@ -553,7 +533,7 @@ bool Bptree::insertItem(nData* k)
 			node* nodeBranch[M+1];
 			node* newNode;
 			int j, j2;
-			newNode = (node*)malloc(sizeof(node));
+			newNode = new node();
 			
 			nodeBranch[0] = p->branch[0];
 			for (j=0, j2=0; j<M; j++, j2++)		// save value temporary
@@ -604,7 +584,7 @@ bool Bptree::insertItem(nData* k)
 	}
 	if (i == -1)	// root overflow
 	{
-		root = (node*)malloc(sizeof(node));
+		root = new node();
 		root->count = 1;
 		root->branch[0] = trace[0];
 		root->branch[1] = Right;
@@ -617,42 +597,38 @@ bool Bptree::insertItem(nData* k)
 
 
 void Bptree::kSearch(int k){
-	node* p = root;
-	int nodeNum = 0;
-
-
-	if (p != NULL)
-	{	
-		while (true)	// go to leaf node
-		{
-			if (p->count/M == 1)
-				break;
-			p = p->branch[0];
+	ifstream fi;
+ 	fi.open("Student_score.idx", ifstream::binary); 
+  	if (!fi) { 
+    	cerr << "idx open failed.." << endl;
+    	exit(1);
+  	}
+  	fi.seekg(4096*k);//move to kth node
+  	
+  	float s;
+  	int b;
+  	
+  	while(true){
+  		fi.read((char*)&s,sizeof(float));
+		fi.read((char*)&b,sizeof(int));
+		if(0 >= s || 4.5 < s || fi.eof()){
+			break;
 		}
-		cout << "(score,block number)" << endl;				
-		while (p != NULL)
-		{
-			for (int j=0; j<p->count%M; j++)
-			{
-				if(nodeNum == k){
-					cout << "(" << ((nData*)p->branch[j+1])->score << " , " << ((nData*)p->branch[j+1])-> bNum << ")" << endl;
-					
-				}
-			}
-			nodeNum++;
-			if(nodeNum == k+1)
-				break;
-			p = p->branch[0];
-		}
-		if(p == NULL){
-			cout << "range over!" << endl;
-		}
+		cout << "(" << s << " , " << b << ")" << endl;
 	}
+  	
+  	
+	fi.close();
 }
 
-nData* Bptree::getLeaves(int n){
-	nData* leaves;
-	leaves = new nData[n];
+void Bptree::idxOut(){
+	ofstream fo; 
+ 	fo.open("Student_score.idx", ostream::binary);
+  	if (!fo) { 
+    	cerr << "idx open failed.." << endl;
+    	exit(1);
+  	}
+	
 	int i = 0;
 	node* p = root;
 	if (p != NULL)
@@ -667,17 +643,17 @@ nData* Bptree::getLeaves(int n){
 		{
 			for (int j=0; j<p->count%M; j++)
 			{
-				{
-					leaves[i].score = ((nData*)p->branch[j+1])->score;
-					leaves[i].bNum=((nData*)p->branch[j+1])-> bNum;
-					i++;
-				}
+				fo.write((char*)&(((nData*)p->branch[j+1])->score),sizeof(float));
+				fo.write((char*)&(((nData*)p->branch[j+1])->bNum),sizeof(int));
 			}
+			i++;
+			fo.seekp(4096*i); // move to next block
 			p = p->branch[0];
 		}
 		
 	}
-	return leaves;
+	fo.close();
+	
 }
 
 
@@ -689,7 +665,7 @@ int main(int argc, char** argv) {
 	studentsFS.writeHashTable();
 	studentsFS.hashTablePrint();
 	studentsFS.make_B_plusTree();
-	studentsFS.kthNodePrint();
 	studentsFS.idxOut();
+	studentsFS.kthNodePrint();
 	return 0;
 }
